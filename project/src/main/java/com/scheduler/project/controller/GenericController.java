@@ -5,14 +5,14 @@ import com.scheduler.project.other.Response;
 
 import java.util.List;
 
-public interface GenericController<T, ID> {
-    Response<T> create(T entity);
+public interface GenericController<DTO, ID> {
+    Response<DTO> create(DTO dto);
 
-    Response<T> getById(ID id) throws NotFoundException ;
+    Response<DTO> getById(ID id) throws NotFoundException ;
 
-    Response<List<T>> getAll() ;
+    Response<List<DTO>> getAll() ;
 
-    Response<T> update(T entity);
+    Response<DTO> update(DTO dto);
 
     Response<String> delete(ID id) throws NotFoundException ;
 

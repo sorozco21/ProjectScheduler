@@ -1,27 +1,33 @@
 package com.scheduler.project.controller;
 
+import com.scheduler.project.dto.ProjectDto;
+import com.scheduler.project.dto.TaskDto;
 import com.scheduler.project.entity.Project;
-import com.scheduler.project.other.Response;
-import com.scheduler.project.service.GenericServiceImpl;
+import com.scheduler.project.exception.ProjectSchedulingException;
 import com.scheduler.project.service.ProjectService;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
+import java.util.List;
 
 @RestController
 @RequestMapping("projects")
-public class ProjectController extends GenericControllerImpl<Project, Long> {
+@Tag(name = "Projects Controller", description = "Contains all APIs for managing projects")
+public class ProjectController extends GenericControllerImpl<Project, ProjectDto, Long> {
+
+    @Autowired
     protected ProjectController(ProjectService service) {
         super(service);
     }
-    @PostMapping("/test")
-    public Response<Project> sample(){
-        Project project = new Project();
-        project.setName("SAMPLE PROJECT NAME");
-        project.setStartDate(LocalDate.now());
-        project.setEndDate(LocalDate.now().plusDays(2));
-        return Response.ok(service.save(project));
+
+    @PostMapping("addTasks/{id}")
+    public ProjectDto addTasks(@PathVariable Long id, @RequestBody List<TaskDto> tasks) throws ProjectSchedulingException {
+        return ((ProjectService) service).addTasks(id, tasks);
+    }
+
+    @DeleteMapping("removeTasks/{id}")
+    public ProjectDto removeTasks(@PathVariable Long id, @RequestBody List<Long> taskIds) throws ProjectSchedulingException {
+        return ((ProjectService) service).removeTaskIds(id, taskIds);
     }
 }

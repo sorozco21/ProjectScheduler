@@ -19,4 +19,9 @@ public class Project extends BaseEntity{
     // One-to-many relationship with Task
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Task> tasks = new ArrayList<>();
+    private boolean scheduled=false;
+
+    public boolean hasTaskWithId(Long taskId) {
+        return tasks.stream().anyMatch(task -> task.getId().equals(taskId));
+    }
 }

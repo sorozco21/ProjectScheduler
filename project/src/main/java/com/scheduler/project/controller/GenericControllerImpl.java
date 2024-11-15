@@ -2,44 +2,44 @@ package com.scheduler.project.controller;
 
 import com.scheduler.project.exception.NotFoundException;
 import com.scheduler.project.other.Response;
-import com.scheduler.project.service.GenericService;
 import com.scheduler.project.service.GenericServiceImpl;
-import com.scheduler.project.service.ProjectService;
-import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
-public abstract class GenericControllerImpl<T, ID> implements GenericController<T,ID>{
+public abstract class GenericControllerImpl<T,DTO, ID>
+        implements GenericController<DTO, ID> {
 
-    protected final GenericServiceImpl<T, ID> service;
+    protected final GenericServiceImpl<T,DTO, ID> service;
 
     @Autowired
-    protected GenericControllerImpl(GenericServiceImpl<T, ID> service) {
+    protected GenericControllerImpl(GenericServiceImpl<T, DTO, ID> service) {
         this.service = service;
     }
 
 
     @PostMapping
-    public Response<T> create(@RequestBody T entity) {
-        return Response.ok(service.save(entity));
+    public Response<DTO> create(@RequestBody DTO dto) {
+        T entity =  service.toEntity(dto);
+        return Response.ok(service.toDto(service.save(entity)));
     }
 
     @GetMapping("/{id}")
-    public Response<T> getById(@PathVariable ID id) throws NotFoundException {
-        return Response.ok(service.findById(id));
+    public Response<DTO> getById(@PathVariable ID id) throws NotFoundException {
+        return Response.ok(service.toDto(service.findById(id)));
     }
 
     @GetMapping
-    public Response<List<T>> getAll() {
-        return Response.ok(service.findAll());
+    public Response<List<DTO>> getAll() {
+        return Response.ok(service.toDtoList(service.findAll()));
     }
 
     @PutMapping
-    public Response<T> update(@RequestBody T entity) {
-        return Response.ok(service.save(entity));
+    public Response<DTO> update(@RequestBody DTO dto) {
+        T entity =  service.toEntity(dto);
+        return Response.ok(service.toDto(service.save(entity)));
     }
 
     @DeleteMapping("/{id}")
