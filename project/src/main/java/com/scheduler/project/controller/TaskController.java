@@ -18,12 +18,12 @@ public class TaskController extends GenericControllerImpl<Task,TaskDto, Long> {
         super(service);
     }
 
-    @PostMapping("/addSubTasks/{id}")
+    @PostMapping("/{id}/addSubTasks")
     public TaskDto addSubTask(@PathVariable Long id, @RequestBody List<TaskDto> dtos) throws ProjectSchedulingException {
         return ((TaskService) service).addSubTasks(id, dtos);
     }
 
-    @DeleteMapping("/removeSubTasks/{id}")
+    @DeleteMapping("/{id}/removeSubTasks")
     public TaskDto removeSubtasks(@PathVariable Long id, @RequestBody List<Long> subTaskIds) throws ProjectSchedulingException {
         return ((TaskService) service).removeSubTasks(id, subTaskIds);
     }

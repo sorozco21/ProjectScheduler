@@ -31,17 +31,17 @@ public class TaskService extends GenericServiceImpl<Task, TaskDto, Long>{
     public TaskDto addSubTasks(Long mainTaskId, List<TaskDto> subTasks) throws ProjectSchedulingException {
         Task mainTask = findById(mainTaskId);
 
-        // Handle null or empty subtasks
         if (subTasks == null || subTasks.isEmpty()) {
             throw new ProjectSchedulingException("SubTasks cannot be null or empty");
         }
 
         List<Task> tasksToAdd = subTasks.stream()
-                .filter(taskDto -> taskDto.getId() != null && !mainTask.hasSubTaskWithId(taskDto.getId())) // Exclude already-added tasks
+//                .filter(taskDto -> taskDto.getId() != null && !mainTask.hasSubTaskWithId(taskDto.getId())) // Exclude already-added tasks
                 .map(this::toEntity)
                 .peek(task -> {
                     task.setMainTask(mainTask);
                     task.setProject(mainTask.getProject());
+                    save(task);
                 })
                 .toList();
 
@@ -58,6 +58,10 @@ public class TaskService extends GenericServiceImpl<Task, TaskDto, Long>{
         }
         List<Task> tasksToRemove = mainTask.getSubTasks().stream()
                 .filter(task -> subTaskIds.contains(task.getId()))
+                .peek(task -> {
+                    task.setMainTask(null);
+                    repository.save(task);
+                })
                 .toList();
 
         tasksToRemove.forEach(mainTask.getSubTasks()::remove);

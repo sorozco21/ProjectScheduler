@@ -16,6 +16,10 @@ import java.util.stream.Collectors;
         uniqueConstraints = { @UniqueConstraint(columnNames = {"name"}) }
 )
 public class Project extends BaseEntity{
+    public Project(Long id){
+        super.setId(id);
+    }
+
     // One-to-many relationship with Task
     @OneToMany(mappedBy = "project", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Task> tasks = new ArrayList<>();

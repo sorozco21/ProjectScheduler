@@ -19,6 +19,11 @@ import java.util.Set;
 @AllArgsConstructor
 @NoArgsConstructor
 public class Task extends BaseEntity{
+
+    public Task(Long id){
+        super.setId(id);
+    }
+
     @ManyToOne
         @JoinColumn(name = "main_task_id")
     private Task mainTask;

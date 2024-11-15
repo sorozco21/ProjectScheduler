@@ -9,7 +9,9 @@ import com.scheduler.project.exception.NotFoundException;
 import com.scheduler.project.exception.ProjectSchedulingException;
 import com.scheduler.project.mapper.ProjectMapper;
 import com.scheduler.project.repository.ProjectRepository;
+import com.scheduler.project.repository.TaskRepository;
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -17,30 +19,36 @@ import java.time.LocalDate;
 import java.util.*;
 
 @Service
+@Slf4j
 public class ProjectService extends GenericServiceImpl<Project, ProjectDto, Long>{
+    private final ProjectRepository projectRepository;
 
     private final TaskService taskService;
 
     @Autowired
-    public ProjectService(ProjectRepository repository, ProjectMapper mapper, TaskService taskService) {
+    public ProjectService(ProjectRepository repository, ProjectMapper mapper, TaskService taskService,
+                          ProjectRepository projectRepository) {
         super(repository, mapper);
         this.taskService = taskService;
+        this.projectRepository = projectRepository;
     }
 
     @Transactional
     public ProjectDto addTasks(Long projectId, List<TaskDto> tasks) throws ProjectSchedulingException {
         Project project = findById(projectId);
-
+        log.info("this is the project to add task : {}", project.getId());
         if (tasks == null || tasks.isEmpty()) {
             throw new ProjectSchedulingException("SubTasks cannot be null or empty");
         }
 
         List<Task> tasksToAdd = tasks.stream()
-                .filter(taskDto -> taskDto.getId() != null && !project.hasTaskWithId(taskDto.getId())) // Exclude already-added tasks
+                //.filter(taskDto -> taskDto.getId() != null && !project.hasTaskWithId(taskDto.getId())) // Exclude already-added tasks
                 .map(taskService::toEntity)
-                .peek(task -> task.setProject(project))
+                .peek(task -> {
+                    task.setProject(project);
+                    taskService.save(task);
+                })
                 .toList();
-
         project.getTasks().addAll(tasksToAdd);
         repository.save(project);
         return mapper.toDto(project);
@@ -54,7 +62,10 @@ public class ProjectService extends GenericServiceImpl<Project, ProjectDto, Long
         }
         List<Task> tasksToAdd = taskService.findAllByIds(taskIds).stream()
                 .filter(task -> !project.getTasks().contains(task))
-                .peek(task -> task.setProject(project))
+                .peek(task -> {
+                    task.setProject(project);
+                    taskService.save(task);
+                })
                 .toList();
 
         project.getTasks().addAll(tasksToAdd);
@@ -71,7 +82,10 @@ public class ProjectService extends GenericServiceImpl<Project, ProjectDto, Long
         }
         List<Task> tasksToRemove = project.getTasks().stream()
                 .filter(task -> taskIds.contains(task.getId()))
-                .peek(task -> task.setProject(null))
+                .peek(task -> {
+                    task.setProject(null);
+                    taskService.save(task);
+                })
                 .toList();
 
         project.getTasks().removeAll(tasksToRemove);
@@ -79,7 +93,7 @@ public class ProjectService extends GenericServiceImpl<Project, ProjectDto, Long
         return mapper.toDto(project);
     }
 
-    public void schedule(Long id) throws CyclicDependencyException, NotFoundException {
+    public ProjectDto schedule(Long id) throws CyclicDependencyException, NotFoundException {
         Project project = findById(id);
         List<Task> sortedTasks = topologicalSort(project);
         List<Task> sortedAndScheduledTask = new ArrayList<>();
@@ -105,6 +119,10 @@ public class ProjectService extends GenericServiceImpl<Project, ProjectDto, Long
         project.getTasks().clear();
         project.getTasks().addAll(sortedAndScheduledTask);
         project.setEndDate(currDate);
+        project.setScheduled(true);
+        projectRepository.save(project);
+
+        return mapper.toDto(project);
     }
 
     private List<Task> topologicalSort(Project project) throws CyclicDependencyException {
