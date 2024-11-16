@@ -6,6 +6,7 @@ import com.scheduler.project.entity.Task;
 import com.scheduler.project.exception.NotFoundException;
 import com.scheduler.project.exception.ProjectSchedulingException;
 import com.scheduler.project.mapper.TaskMapper;
+import com.scheduler.project.repository.ProjectRepository;
 import com.scheduler.project.repository.TaskRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,10 +18,12 @@ import java.util.Objects;
 @Service
 public class TaskService extends GenericServiceImpl<Task, TaskDto, Long>{
 
+    private final ProjectRepository projectRepository;
 
     @Autowired
-    public TaskService(TaskRepository repository, TaskMapper mapper) {
+    public TaskService(TaskRepository repository, TaskMapper mapper, ProjectRepository projectRepository) {
         super(repository, mapper);
+        this.projectRepository = projectRepository;
     }
 
     public List<Task> findAllByIds(List<Long> ids){
@@ -30,10 +33,22 @@ public class TaskService extends GenericServiceImpl<Task, TaskDto, Long>{
     public TaskDto save(TaskDto dto)  {
         try {
             Task task = toEntity(dto);
-            task.setProject(new Project(dto.getProjectId()));
-            task.setMainTask(findById(dto.getMainTaskId()));
+            if (dto.getProjectId() != null) {
+                Project project = projectRepository.findById(dto.getProjectId())
+                        .orElseThrow(() -> new ProjectSchedulingException("Project not found"));
+                task.setProject(project);
+            } else {
+                throw new NotFoundException("Project ID must not be null");
+            }
+
+            if (dto.getMainTaskId() != null) {
+                task.setMainTask(findById(dto.getMainTaskId()));
+            }
+
             Task savedTask = save(task);
-            return addSubTasksByIds(savedTask.getId(), dto.getSubTaskIds());
+            if(dto.getSubTaskIds().isEmpty()){
+                return toDto(savedTask);
+            }else return addSubTasksByIds(savedTask.getId(), dto.getSubTaskIds());
         } catch (ProjectSchedulingException e) {
             throw new RuntimeException(e);
         }
