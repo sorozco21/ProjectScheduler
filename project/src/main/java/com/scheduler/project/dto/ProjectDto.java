@@ -9,9 +9,13 @@ import java.util.List;
 @Data
 public class ProjectDto {
     private Long id;
+
+    @Schema(example = "Project 1")
     private String name;
     private LocalDate startDate;
     private LocalDate endDate;
+    @Schema(example = "false")
     private boolean scheduled=false;
+
     private List<TaskDto> tasks;
 }

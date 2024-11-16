@@ -32,13 +32,28 @@ public class ProjectService extends GenericServiceImpl<Project, ProjectDto, Long
         this.taskService = taskService;
         this.projectRepository = projectRepository;
     }
+    @Transactional
+    public ProjectDto save(ProjectDto dto){
+        Project project = mapper.toEntity(dto);
+        project.getTasks().clear();
+        List<Task> tasks = dto.getTasks().stream()
+                .map(taskDto -> {
+                    Task task = taskService.toEntity(taskDto);
+                    task.setProject(project);
+                    return task;
+                })
+                .toList();
+        project.getTasks().addAll(tasks);
+
+        return mapper.toDto(projectRepository.save(project));
+    }
 
     @Transactional
     public ProjectDto addTasks(Long projectId, List<TaskDto> tasks) throws ProjectSchedulingException {
         Project project = findById(projectId);
         log.info("this is the project to add task : {}", project.getId());
         if (tasks == null || tasks.isEmpty()) {
-            throw new ProjectSchedulingException("SubTasks cannot be null or empty");
+            throw new ProjectSchedulingException("Tasks cannot be null or empty");
         }
 
         List<Task> tasksToAdd = tasks.stream()
@@ -58,7 +73,7 @@ public class ProjectService extends GenericServiceImpl<Project, ProjectDto, Long
     public ProjectDto addTaskByIds(Long projectId, List<Long> taskIds) throws ProjectSchedulingException {
         Project project = findById(projectId);
         if (taskIds == null || taskIds.isEmpty()) {
-            throw new ProjectSchedulingException("SubTasks cannot be null or empty");
+            throw new ProjectSchedulingException("Tasks cannot be null or empty");
         }
         List<Task> tasksToAdd = taskService.findAllByIds(taskIds).stream()
                 .filter(task -> !project.getTasks().contains(task))
@@ -78,7 +93,7 @@ public class ProjectService extends GenericServiceImpl<Project, ProjectDto, Long
         Project project = findById(projectId);
 
         if (taskIds == null || taskIds.isEmpty()) {
-            throw new ProjectSchedulingException("SubTasks cannot be null or empty");
+            throw new ProjectSchedulingException("Tasks cannot be null or empty");
         }
         List<Task> tasksToRemove = project.getTasks().stream()
                 .filter(task -> taskIds.contains(task.getId()))

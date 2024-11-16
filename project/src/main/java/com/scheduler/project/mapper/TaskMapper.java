@@ -41,7 +41,7 @@ public interface TaskMapper extends CommonMapper<Task, TaskDto> {
     }
 
     @Named("subTaskIdsToEntityList")
-    default Set<Task> subTaskIdsToEntityList(Set<Long> ids) {
+    default Set<Task> subTaskIdsToEntityList(List<Long> ids) {
         return (ids != null && !ids.isEmpty())
                 ? ids.stream()
                 .map(Task::new).collect(Collectors.toSet())
@@ -49,13 +49,13 @@ public interface TaskMapper extends CommonMapper<Task, TaskDto> {
     }
 
     @Named("subTasksToIds")
-    default Set<Long> subTasksToIds(Set<Task> subTasks) {
+    default List<Long> subTasksToIds(Set<Task> subTasks) {
         if (subTasks == null || subTasks.isEmpty()) {
-            return new HashSet<>();
+            return new ArrayList<>();
         }
         return subTasks.stream()
                 .map(Task::getId)
-                .collect(Collectors.toSet());
+                .collect(Collectors.toList());
     }
 
     @Named("mainTaskToId")

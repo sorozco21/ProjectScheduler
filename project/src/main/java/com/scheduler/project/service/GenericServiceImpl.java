@@ -3,6 +3,7 @@ package com.scheduler.project.service;
 import com.scheduler.project.constant.MessageConstants;
 import com.scheduler.project.exception.NotFoundException;
 import com.scheduler.project.mapper.CommonMapper;
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -10,6 +11,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 @Slf4j
+@Getter
 public abstract class GenericServiceImpl<T, DTO, ID>
         implements GenericService<T, DTO, ID> {
 

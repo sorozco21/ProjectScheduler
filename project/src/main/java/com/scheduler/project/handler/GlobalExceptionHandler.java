@@ -1,8 +1,10 @@
 package com.scheduler.project.handler;
 
 import com.scheduler.project.exception.CyclicDependencyException;
+import com.scheduler.project.exception.NotFoundException;
 import com.scheduler.project.exception.ProjectSchedulingException;
 import com.scheduler.project.other.Response;
+import jakarta.persistence.EntityNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -30,6 +32,15 @@ public class GlobalExceptionHandler {
         return Response.<String>builder()
                 .message(ex.getMessage())
                 .httpStatus(HttpStatus.CONFLICT)
+                .build();
+    }
+    @ExceptionHandler({EntityNotFoundException.class, NotFoundException.class})
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @ResponseBody
+    public Response<String> handelNotFoundEntity(Exception ex) {
+        return Response.<String>builder()
+                .message(ex.getMessage())
+                .httpStatus(HttpStatus.NOT_FOUND)
                 .build();
     }
 }
