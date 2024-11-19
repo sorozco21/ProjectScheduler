@@ -6,6 +6,7 @@ This project provides an API for managing **Projects** and **Tasks**, supporting
 
 - [Overview](#overview)
 - [Requirements](#requirements)
+- [GettingStarted](#getting-started)
 - [Controllers](#controllers)
     - [ProjectController](#projectcontroller)
     - [TaskController](#taskcontroller)
@@ -27,6 +28,13 @@ This project allows users to manage projects and their tasks. The API includes e
 4. So, for a set of tasks (with durations and dependencies), the solution for the challenge should generate a schedule, i.e. assign Start and End Dates for every task
 5. It is ok to have a console app
 6. The solution should be pushed to GitHub
+
+## Getting Started
+* Java 17
+* Maven
+* Clone the project here https://github.com/sorozco21/ProjectScheduler.git
+* Run 'mvn clean install'
+* Run 'mvn spring-boot:run'
 
 ## Controllers
 
@@ -153,4 +161,6 @@ Defines the structure for project-related data sent in the API requests and resp
 Swagger is integrated to automatically generate API documentation. The API documentation can be accessed at: http://localhost:8080/swagger-ui/index.html#/
 
 ## H2 Console
-This uses H2 database can be access here at: http://localhost:8080/h2-console/
+* This uses H2 database can be access here at: http://localhost:8080/h2-console/
+* username=user
+* password=P@ssTheSCHED123
