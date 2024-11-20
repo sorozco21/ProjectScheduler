@@ -1,7 +1,6 @@
 package com.scheduler.project.controller;
 
 import com.scheduler.project.exception.NotFoundException;
-import com.scheduler.project.exception.ProjectSchedulingException;
 import com.scheduler.project.other.Response;
 import com.scheduler.project.service.GenericServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;

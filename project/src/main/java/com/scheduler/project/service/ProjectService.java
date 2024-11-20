@@ -1,22 +1,23 @@
 package com.scheduler.project.service;
 
+import com.scheduler.project.constant.MessageConstants;
+import com.scheduler.project.dto.CreateProjectRequest;
+import com.scheduler.project.dto.CreateTaskRequest;
 import com.scheduler.project.dto.ProjectDto;
-import com.scheduler.project.dto.TaskDto;
 import com.scheduler.project.entity.Project;
 import com.scheduler.project.entity.Task;
 import com.scheduler.project.exception.CyclicDependencyException;
 import com.scheduler.project.exception.NotFoundException;
-import com.scheduler.project.exception.ProjectSchedulingException;
 import com.scheduler.project.mapper.ProjectMapper;
+import com.scheduler.project.mapper.TaskMapper;
 import com.scheduler.project.repository.ProjectRepository;
-import com.scheduler.project.repository.TaskRepository;
-import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -25,87 +26,58 @@ public class ProjectService extends GenericServiceImpl<Project, ProjectDto, Long
 
     private final TaskService taskService;
 
+    private final ProjectMapper projectMapper;
+    private final TaskMapper taskMapper;
+
     @Autowired
-    public ProjectService(ProjectRepository repository, ProjectMapper mapper, TaskService taskService,
-                          ProjectRepository projectRepository) {
-        super(repository, mapper);
+    public ProjectService(ProjectRepository repository, TaskService taskService,
+                          ProjectRepository projectRepository, ProjectMapper projectMapper, TaskMapper taskMapper) {
+        super(repository, projectMapper);
         this.taskService = taskService;
         this.projectRepository = projectRepository;
+        this.projectMapper = projectMapper;
+        this.taskMapper = taskMapper;
     }
-    @Transactional
-    public ProjectDto save(ProjectDto dto){
-        Project project = mapper.toEntity(dto);
+
+    public ProjectDto save(CreateProjectRequest request){
+        Project project = projectMapper.toEntity(request);
         project.getTasks().clear();
-        List<Task> tasks = dto.getTasks().stream()
-                .map(taskDto -> {
-                    Task task = taskService.toEntity(taskDto);
-                    task.setProject(project);
-                    return task;
-                })
+        List<Task> tasks = request.getTasks().stream()
+                .map(taskMapper::toEntity)
                 .toList();
+        tasks.forEach(task -> task.setProject(project));
         project.getTasks().addAll(tasks);
-
-        return mapper.toDto(projectRepository.save(project));
+        return toDto(save(project));
     }
 
-    @Transactional
-    public ProjectDto addTasks(Long projectId, List<TaskDto> tasks) throws ProjectSchedulingException {
-        Project project = findById(projectId);
-        log.info("this is the project to add task : {}", project.getId());
-        if (tasks == null || tasks.isEmpty()) {
-            throw new ProjectSchedulingException("Tasks cannot be null or empty");
-        }
-
-        List<Task> tasksToAdd = tasks.stream()
-                //.filter(taskDto -> taskDto.getId() != null && !project.hasTaskWithId(taskDto.getId())) // Exclude already-added tasks
-                .map(taskService::toEntity)
-                .peek(task -> {
-                    task.setProject(project);
-                    taskService.save(task);
-                })
-                .toList();
-        project.getTasks().addAll(tasksToAdd);
-        repository.save(project);
-        return mapper.toDto(project);
+    public ProjectDto addTasks(Long id, List<CreateTaskRequest> requests) throws NotFoundException {
+        Project project = findById(id);
+        List<Task> tasks = taskMapper.requestToEntityList(requests);
+        tasks.forEach(task -> task.setProject(project));
+        project.getTasks().addAll(tasks);
+        project.setScheduled(false);
+        return toDto(save(project));
     }
 
-    @Transactional
-    public ProjectDto addTaskByIds(Long projectId, List<Long> taskIds) throws ProjectSchedulingException {
+    public ProjectDto addSubTasks(Long projectId, Long mainTaskId, Set<CreateTaskRequest> subTasksRequest) throws NotFoundException {
         Project project = findById(projectId);
-        if (taskIds == null || taskIds.isEmpty()) {
-            throw new ProjectSchedulingException("Tasks cannot be null or empty");
-        }
-        List<Task> tasksToAdd = taskService.findAllByIds(taskIds).stream()
-                .filter(task -> !project.getTasks().contains(task))
-                .peek(task -> {
-                    task.setProject(project);
-                    taskService.save(task);
-                })
-                .toList();
+        Task mainTask = taskService.findById(mainTaskId);
+        Set<Task> subTasks = subTasksRequest.stream()
+                .map(taskMapper::toEntity)
+                .collect(Collectors.toSet());
 
-        project.getTasks().addAll(tasksToAdd);
-        repository.save(project);
-        return mapper.toDto(project);
+        subTasks.forEach(subTask -> {
+            subTask.setProject(project);
+            subTask.setMainTask(mainTask);
+        });
+        mainTask.getSubTasks().addAll(subTasks);
+        project.getTasks().addAll(subTasks);
+        project.setScheduled(false);
+        return toDto(save(project));
     }
 
-    @Transactional
-    public ProjectDto removeTaskIds(Long projectId, List<Long> taskIds) throws ProjectSchedulingException {
-        Project project = findById(projectId);
-
-        if (taskIds == null || taskIds.isEmpty()) {
-            throw new ProjectSchedulingException("Tasks cannot be null or empty");
-        }
-        List<Task> tasksToRemove = project.getTasks().stream()
-                .filter(task -> taskIds.contains(task.getId()))
-                .peek(task -> {
-                    task.setProject(null);
-                    taskService.save(task);
-                })
-                .toList();
-
-        project.getTasks().removeAll(tasksToRemove);
-        repository.save(project);
-        return mapper.toDto(project);
+    public String deleteTaskById(Long id) throws NotFoundException {
+        return taskService.deleteById(id);
     }
 
     public ProjectDto schedule(Long id) throws CyclicDependencyException, NotFoundException {
@@ -168,7 +140,7 @@ public class ProjectService extends GenericServiceImpl<Project, ProjectDto, Long
         }
 
         if(sortedTasks.size() != project.getTasks().size()){
-            throw new CyclicDependencyException(("Cycle detected in tasks."));
+            throw new CyclicDependencyException(MessageConstants.CYCLIC_DEPENDENCY_EXCEPTION);
         }
 
         return sortedTasks;

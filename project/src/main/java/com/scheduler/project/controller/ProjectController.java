@@ -1,58 +1,59 @@
 package com.scheduler.project.controller;
 
+import com.scheduler.project.dto.CreateProjectRequest;
+import com.scheduler.project.dto.CreateTaskRequest;
 import com.scheduler.project.dto.ProjectDto;
-import com.scheduler.project.dto.TaskDto;
-import com.scheduler.project.entity.Project;
 import com.scheduler.project.exception.CyclicDependencyException;
 import com.scheduler.project.exception.NotFoundException;
-import com.scheduler.project.exception.ProjectSchedulingException;
 import com.scheduler.project.other.Response;
 import com.scheduler.project.service.ProjectService;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping("projects")
+@RequiredArgsConstructor
 @Tag(name = "Projects Controller", description = "Contains all APIs for managing projects")
-public class ProjectController extends GenericControllerImpl<Project, ProjectDto, Long> {
+public class ProjectController {
 
-    @Autowired
-    protected ProjectController(ProjectService service) {
-        super(service);
-    }
+    private final ProjectService service;
 
-    @Override
     @PostMapping
-    public Response<ProjectDto> create(@RequestBody ProjectDto dto) {
-        return Response.ok(((ProjectService)service).save(dto));
+    public Response<ProjectDto> create(@RequestBody CreateProjectRequest request) {
+        return Response.ok(service.save(request));
     }
 
-    @Override
-    @PutMapping
-    public Response<ProjectDto> update(@RequestBody ProjectDto dto) {
-        return create(dto);
+    @PatchMapping("/{id}/calculate-schedule")
+    public Response<ProjectDto> calculateSchedule(@PathVariable Long id) throws NotFoundException, CyclicDependencyException {
+        return Response.ok(service.schedule(id));
     }
 
-    @PostMapping("/{id}/calculate-schedule")
-    public ProjectDto calculateSchedule(@PathVariable Long id) throws NotFoundException, CyclicDependencyException {
-        return ((ProjectService) service).schedule(id);
+    @PostMapping("{id}/tasks")
+    public Response<ProjectDto> addTasks(@PathVariable Long id, @RequestBody List<CreateTaskRequest> requests) throws NotFoundException {
+        return Response.ok(service.addTasks(id, requests));
     }
 
-    @PostMapping("{id}/addTasks")
-    public ProjectDto addTasks(@PathVariable Long id, @RequestBody List<TaskDto> tasks) throws ProjectSchedulingException {
-        return ((ProjectService) service).addTasks(id, tasks);
+    @PostMapping("{id}/tasks/{mainTaskId}")
+    public Response<ProjectDto> addSubTasks(@PathVariable Long id, @PathVariable Long mainTaskId, @RequestBody Set<CreateTaskRequest> subTasksRequest) throws NotFoundException {
+        return Response.ok(service.addSubTasks(id, mainTaskId, subTasksRequest));
     }
 
-    @PostMapping("{id}/addTaskByIds")
-    public ProjectDto addTasksByIds(@PathVariable Long id, @RequestBody List<Long> taskIds) throws ProjectSchedulingException {
-        return ((ProjectService) service).addTaskByIds(id, taskIds);
+    @DeleteMapping("/tasks/{id}")
+    public Response<String> deleteTasksByIds(@PathVariable Long id) throws NotFoundException {
+        return Response.ok(service.deleteTaskById(id));
     }
 
-    @DeleteMapping("{id}/removeTasksByIds")
-    public ProjectDto removeTasks(@PathVariable Long id, @RequestBody List<Long> taskIds) throws ProjectSchedulingException {
-        return ((ProjectService) service).removeTaskIds(id, taskIds);
+    @DeleteMapping("{id}")
+    public Response<String> deleteProjectById(@PathVariable Long id) throws NotFoundException {
+        return Response.ok(service.deleteById(id));
+    }
+
+    @GetMapping("{id}")
+    public Response<ProjectDto> getById(@PathVariable Long id) throws NotFoundException {
+        return Response.ok(service.toDto(service.findById(id)));
     }
 }

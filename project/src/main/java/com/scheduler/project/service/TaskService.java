@@ -87,14 +87,12 @@ public class TaskService extends GenericServiceImpl<Task, TaskDto, Long>{
         }
         List<Task> tasksToRemove = mainTask.getSubTasks().stream()
                 .filter(task -> subTaskIds.contains(task.getId()))
-                .peek(task -> {
-                    task.setMainTask(null);
-                    repository.save(task);
-                })
                 .toList();
 
-        tasksToRemove.forEach(mainTask.getSubTasks()::remove);
-        repository.save(mainTask);
+        tasksToRemove.forEach(task -> {
+            task.setMainTask(null);
+            repository.save(task);
+        });
 
         return toDto(mainTask);
     }

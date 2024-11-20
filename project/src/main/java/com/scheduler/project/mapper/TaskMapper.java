@@ -1,5 +1,6 @@
 package com.scheduler.project.mapper;
 
+import com.scheduler.project.dto.CreateTaskRequest;
 import com.scheduler.project.dto.TaskDto;
 import com.scheduler.project.entity.Project;
 import com.scheduler.project.entity.Task;
@@ -25,6 +26,9 @@ public interface TaskMapper extends CommonMapper<Task, TaskDto> {
     @Mapping(target = "subTasks", source = "subTaskIds", qualifiedByName = "subTaskIdsToEntityList")
     @Mapping(target = "mainTask", source = "mainTaskId", qualifiedByName = "mainTaskIdToEntity")
     Task toEntity(TaskDto dto);
+
+    Task toEntity(CreateTaskRequest req);
+    List<Task> requestToEntityList(List<CreateTaskRequest> list);
 
     @Named("projectIdToEntity")
     default Project projectIdToEntity(Long id) {
